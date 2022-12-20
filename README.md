@@ -311,3 +311,115 @@ sizeof(st_t)等于8，即char c[0]的大小为0.
 st_t *s = (st_t *)malloc(sizeof(st_t) + SIZE);
 ~~~
 
+### 函数参数入栈顺序
+C语言函数参数入栈顺序是从右向左的，这是由编译器决定的，更具体的说是函数调用约定决定了参数的入栈顺序。C语言采用是函数调用约定是__cdecl的，所以对于函数的声明，完整的形式是：int __cdecl func(int a, int b);
+### inline内联函数
+inline关键字仅仅是建议编译器做内联展开处理，即是将函数直接嵌入调用程序的主体，省去了调用/返回指令
+### 内存分配回收之malloc/free与new/delete的区别
+1) malloc与free是C/C++语言的标准库函数，new/delete是C++的运算符。它们都可用于申请动态内存和释放内存。
+
+2) 对于非内部数据类型的对象而言，光用maloc/free无法满足动态对象的要求。对象在创建的同时要自动执行构造函数，对象在消亡之前要自动执行析构函数。由于malloc/free是库函数而不是运算符，不在编译器控制权限之内，不能够把执行构造函数和析构函数的任务强加于malloc/free。因此C++语言需要一个能完成动态内存分配和初始化工作的运算符new，以及一个能完成清理与释放内存工作的运算符delete。注意new/delete不是库函数。
+我们不要企图用malloc/free来完成动态对象的内存管理，应该用new/delete。由于内部数据类型的“对象”没有构造与析构的过程，对它们而言malloc/free和new/delete是等价的。
+
+3) 既然new/delete的功能完全覆盖了malloc/free，为什么C++不把malloc/free淘汰出局呢？这是因为C++程序经常要调用C函数，而C程序只能用malloc/free管理动态内存。
+如果用free释放“new创建的动态对象”，那么该对象因无法执行析构函数而可能导致程序出错。如果用delete释放“malloc申请的动态内存”，结果也会导致程序出错，但是该程序的可读性很差。所以new/delete必须配对使用，malloc/free也一样。
+### malloc(0)返回值
+如果请求的长度为0，则标准C语言函数malloc返回一个null指针或不能用于访问对象的非null指针，该指针能被free安全使用。
+### 可变参数列表
+可变参数列表是通过宏来实现的，这些宏定义在stdarg.h头文件，它是标准库的一部分。这个头文件声明了一个类型va_list和三个宏：va_start、va_arg和va_end。
+~~~
+typedef char *va_list;
+#define va_start(ap, A)  (void)((ap) = (char *)&(A) + _Bnd(A, _AUPBND))
+#define va_arg(ap, T) (*(T )((ap) += _Bnd(T, _AUPBND)) - _Bnd(T, _ADNBND)))
+#define va_end(ap) (void)0
+int print(char *format, …)
+~~~
+宏va_start的第一个参数是va_list类型的变量，第二个参数是省略号前最后一个有名字的参数，功能是初始化va_list类型的变量，将其值设置为可变参数的第一个变量。
+
+宏va_arg的第一个参数是va_list类型的变量，第二个参数是参数列表的下一个参数的类型。va_arg返回va_list变量的值，并使该变量指向下一个可变参数。
+
+宏va_end是在va_arg访问完最后一个可变参数之后调用的。
+### 问题1：实现printf函数
+~~~
+/*（转载）
+ * A simple printf function. Only support the following format:
+ * Code Format
+ * %c character
+ * %d signed integers
+ * %i signed integers
+ * %s a string of characters
+ * %o octal
+ * %x unsigned hexadecimal
+ */
+int my_printf( const char* format, ...)
+{
+    va_list arg;
+    int done = 0;
+
+    va_start (arg, format); 
+
+    while( *format != '\0')
+    {
+        if( *format == '%')
+        {
+            if( *(format+1) == 'c' )
+            {
+                char c = (char)va_arg(arg, int);
+                putc(c, stdout);
+            } else if( *(format+1) == 'd' || *(format+1) == 'i')
+            {
+                char store[20];
+                int i = va_arg(arg, int);
+                char* str = store;
+                itoa(i, store, 10);
+                while( *str != '\0') putc(*str++, stdout); 
+            } else if( *(format+1) == 'o')
+            {
+                char store[20];
+                int i = va_arg(arg, int);
+                char* str = store;
+                itoa(i, store, 8);
+                while( *str != '\0') putc(*str++, stdout); 
+            } else if( *(format+1) == 'x')
+            {
+                char store[20];
+                int i = va_arg(arg, int);
+                char* str = store;
+                itoa(i, store, 16);
+                while( *str != '\0') putc(*str++, stdout); 
+            } else if( *(format+1) == 's' )
+            {
+                char* str = va_arg(arg, char*);
+                while( *str != '\0') putc(*str++, stdout);
+            }
+
+            // Skip this two characters.
+
+            format += 2;
+        } else {
+            putc(*format++, stdout);
+        }
+    }
+
+    va_end (arg);
+
+    return done;
+} 
+~~~
+### ASSERT()的作用
+ASSERT()是一个调试程序时经常使用的宏，在程序运行时它计算括号内的表达式，如果表达式为FALSE (0), 程序将报告错误，并终止执行。如果表达式不为0，则继续执行后面的语句。这个宏通常原来判断程序中是否出现了明显非法的数据，如果出现了终止程序以免导致严重后果，同时也便于查找错误。例如，变量n在程序中不应该为0，如果为0可能导致错误，你可以这样写程序：
+~~~
+ASSERT( n != 0);
+
+k = 10/ n;
+~~~
+ASSERT只有在Debug版本中才有效，如果编译为Release版本则被忽略。
+
+assert()的功能类似，它是ANSI C标准中规定的函数，它与ASSERT的一个重要区别是可以用在Release版本中。
+### 问题2：system("pause");的作用
+
+答:系统的暂停程序，按任意键继续，屏幕会打印，"按任意键继续。。。。。"省去了使用getchar（）；
+
+### 问题3：请问C++的类和C里面的struct有什么区别？
+
+答:c++中的类具有成员保护功能，并且具有继承，多态这类oo特点，而c里的struct没有。c里面的struct没有成员函数,不能继承,派生等等.//oo面向对象
