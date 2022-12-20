@@ -37,3 +37,58 @@
 /*其他语句*/
 #endif
 ~~~
+### static关键字的作用？
+Static的用途主要有两个，一是用于修饰存储类型使之成为静态存储类型，二是用于修饰链接属性使之成为内部链接属性。
+
+1静态存储类型：
+
+在函数内定义的静态局部变量，该变量存在内存的静态区，所以即使该函数运行结束，静态变量的值不会被销毁，函数下次运行时能仍用到这个值。
+
+在函数外定义的静态变量——静态全局变量，该变量的作用域只能在定义该变量的文件中，不能被其他文件通过extern引用。
+
+2 内部链接属性
+
+静态函数只能在声明它的源文件中使用。
+### const关键字的作用？
+1声明常变量，使得指定的变量不能被修改。
+
+const int a = 5;/*a的值一直为5，不能被改变*/
+
+const int b; b = 10;/*b的值被赋值为10后，不能被改变*/
+
+const int *ptr; /*ptr为指向整型常量的指针，ptr的值可以修改，但不能修改其所指向的值*/
+~~~
+ int a=4,b=5,c=6,d=7;
+    const int* ptr;
+    ptr=&a;
+    cout<<*ptr<<endl;
+    ptr=&b;
+    cout<<*ptr<<endl; /* ptr的值可以修改 */
+    *ptr=b; /* 但不能修改其所指向的值 *ptr 表示它指向的值*/
+~~~
+
+int *const ptr;/*ptr为指向整型的常量指针，ptr的值不能修改，但可以修改其所指向的值*/
+~~~
+int a=4,b=5,c=6,d=7;
+    int *const ptr=&d;/*ptr为指向整型的常量指针，ptr的值不能修改，但可以修改其所指向的值*/
+    *ptr=a;//合法
+    ptr=&c;//非法
+~~~
+
+const int *const ptr;/*ptr为指向整型常量的常量指针，ptr及其指向的值都不能修改*/
+~~~
+ int a=4,b=5,c=6,d=7;
+   const int *const ptr=&a;/*ptr为指向整型常量的常量指针，ptr及其指向的值都不能修改*/
+   ptr=&d; //非法
+   *ptr=c;//非法
+~~~
+
+2修饰函数形参，使得形参在函数内不能被修改，表示输入参数。
+
+如int fun(const int a);或int fun(const char *str);
+
+3修饰函数返回值，使得函数的返回值不能被修改。
+
+const char *getstr(void);使用：const *str= getstr();
+
+const int getint(void); 使用：const int a =getint();
